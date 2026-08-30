@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DSA Judge — Problem Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0e14;
+    --bg-raised:#0e1420;
+    --surface:#111826;
+    --surface-hover:#151d2c;
+    --border:#1d2635;
+    --border-soft:#161f2c;
+    --text:#dfe6ee;
+    --text-dim:#7c8ba1;
+    --text-faint:#4d5a70;
+    --ac:#3fd67a;
+    --ac-dim:#1c4a30;
+    --ac-glow:rgba(63,214,122,0.18);
+    --pending:#e8935a;
+    --wa:#f0526a;
+    --cf:#5aa9e6;
+    --lc:#f0c14b;
+    --at:#8b7cf6;
+    --he:#5ad1c9;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --sans: 'Inter', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 500px at 15% -10%, rgba(88,166,255,0.06), transparent 60%),
+      radial-gradient(900px 500px at 100% 0%, rgba(63,214,122,0.05), transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    min-height:100vh;
+    padding:28px 20px 60px;
+  }
+  .wrap{max-width:1020px;margin:0 auto;}
+
+  /* ---- header / judge status bar ---- */
+  header{
+    border:1px solid var(--border);
+    background:linear-gradient(180deg, var(--bg-raised), var(--surface));
+    border-radius:14px;
+    padding:22px 24px;
+    margin-bottom:18px;
+    position:relative;
+    overflow:hidden;
+  }
+  header::before{
+    content:"";
+    position:absolute; inset:0;
+    background:repeating-linear-gradient(90deg, rgba(255,255,255,0.015) 0 1px, transparent 1px 40px);
+    pointer-events:none;
+  }
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:11px;
+    letter-spacing:.14em;
+    color:var(--text-faint);
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+  h1{
+    font-family:var(--mono);
+    font-weight:800;
+    font-size:26px;
+    margin:0 0 4px;
+    letter-spacing:-0.01em;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  h1 .dot{
+    width:10px;height:10px;border-radius:50%;
+    background:var(--ac);
+    box-shadow:0 0 0 4px var(--ac-glow);
+    flex:none;
+  }
+  .subtitle{color:var(--text-dim);font-size:13px;margin-bottom:18px;}
+
+  .statline{
+    display:flex; gap:26px; flex-wrap:wrap;
+    font-family:var(--mono);
+    margin-bottom:14px;
+  }
+  .stat{min-width:90px;}
+  .stat .num{font-size:22px;font-weight:700;line-height:1.1;}
+  .stat .lbl{font-size:10.5px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
+  .stat.ac .num{color:var(--ac);}
+  .stat.pending .num{color:var(--pending);}
+
+  .progress-outer{
+    height:8px;border-radius:5px;background:var(--border-soft);
+    overflow:hidden;border:1px solid var(--border);
+  }
+  .progress-inner{
+    height:100%;
+    background:linear-gradient(90deg, #24a05c, var(--ac));
+    width:0%;
+    transition:width .4s ease;
+    box-shadow:0 0 12px var(--ac-glow);
+  }
+
+  .platform-bars{
+    margin-top:20px;
+    padding-top:16px;
+    border-top:1px solid var(--border-soft);
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));
+    gap:14px 20px;
+  }
+  .plat-row{
+    font-family:var(--mono);
+  }
+  .plat-row-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:6px;
+    font-size:11.5px;
+  }
+  .plat-row-name{
+    font-weight:700;
+    letter-spacing:.02em;
+  }
+  .plat-row-count{
+    color:var(--text-faint);
+    font-size:10.5px;
+  }
+  .plat-bar-outer{
+    height:6px;
+    border-radius:4px;
+    background:var(--border-soft);
+    border:1px solid var(--border);
+    overflow:hidden;
+  }
+  .plat-bar-inner{
+    height:100%;
+    width:0%;
+    border-radius:4px;
+    transition:width .4s ease;
+  }
+
+  /* ---- toolbar ---- */
+  .toolbar{
+    display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    margin-bottom:16px;
+  }
+  .search{
+    flex:1 1 220px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:9px;
+    padding:10px 14px;
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:13.5px;
+    outline:none;
+  }
+  .search::placeholder{color:var(--text-faint);}
+  .search:focus{border-color:#2c3a52;}
+
+  select, .chip-btn{
+    background:var(--surface);
+    border:1px solid var(--border);
+    color:var(--text-dim);
+    border-radius:9px;
+    padding:9px 12px;
+    font-family:var(--mono);
+    font-size:12px;
+    cursor:pointer;
+    outline:none;
+  }
+  select{appearance:none;-webkit-appearance:none;}
+  .chip-btn.active{
+    background:var(--ac-dim);
+    color:var(--ac);
+    border-color:#245c3b;
+  }
+
+  /* ---- table ---- */
+  .list{
+    border:1px solid var(--border);
+    border-radius:14px;
+    overflow:hidden;
+    background:var(--surface);
+  }
+  .row{
+    display:grid;
+    grid-template-columns:58px 78px 1fr 90px;
+    gap:14px;
+    align-items:start;
+    padding:13px 16px;
+    border-bottom:1px solid var(--border-soft);
+    transition:background .15s ease;
+  }
+  .row:last-child{border-bottom:none;}
+  .row:hover{background:var(--surface-hover);}
+  .row.done{background:linear-gradient(90deg, rgba(63,214,122,0.06), transparent 40%);}
+  .row.hidden{display:none;}
+
+  .verdict-btn{
+    min-width:34px;height:34px;
+    width:auto;
+    padding:0 6px;
+    border-radius:8px;
+    border:1.5px solid var(--border);
+    background:var(--bg-raised);
+    color:var(--text-faint);
+    font-family:var(--mono);
+    font-size:9.5px;
+    font-weight:700;
+    letter-spacing:.02em;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .18s ease;
+    margin-top:1px;
+  }
+  .verdict-btn:hover{border-color:#33445e;color:var(--text-dim);}
+  .verdict-btn.checked{
+    background:var(--ac-dim);
+    border-color:var(--ac);
+    color:var(--ac);
+    box-shadow:0 0 0 3px var(--ac-glow);
+  }
+  .verdict-btn.attempting{
+    background:rgba(232,147,90,0.12);
+    border-color:var(--pending);
+    color:var(--pending);
+    box-shadow:0 0 0 3px rgba(232,147,90,0.16);
+    animation:attemptGlow 1.6s ease-in-out infinite;
+  }
+  @keyframes attemptGlow{
+    0%,100%{box-shadow:0 0 0 3px rgba(232,147,90,0.16);}
+    50%{box-shadow:0 0 0 5px rgba(232,147,90,0.28);}
+  }
+  .verdict-btn.pulse{animation:pulse .35s ease;}
+  @keyframes pulse{
+    0%{transform:scale(1);}
+    45%{transform:scale(1.18);}
+    100%{transform:scale(1);}
+  }
+  .verdict-hint{
+    font-family:var(--mono);
+    font-size:8px;
+    color:var(--text-faint);
+    text-align:center;
+    margin-top:3px;
+    letter-spacing:.02em;
+  }
+
+  .platform-badge{
+    font-family:var(--mono);
+    font-size:10.5px;
+    font-weight:700;
+    padding:5px 8px;
+    border-radius:6px;
+    text-align:center;
+    letter-spacing:.02em;
+    white-space:nowrap;
+    border:1px solid transparent;
+    margin-top:2px;
+  }
+  .plat-LeetCode{color:var(--lc);background:rgba(240,193,75,0.1);border-color:rgba(240,193,75,0.25);}
+  .plat-Codeforces{color:var(--cf);background:rgba(90,169,230,0.1);border-color:rgba(90,169,230,0.25);}
+  .plat-AtCoder{color:var(--at);background:rgba(139,124,246,0.1);border-color:rgba(139,124,246,0.25);}
+  .plat-HackerEarth{color:var(--he);background:rgba(90,209,201,0.1);border-color:rgba(90,209,201,0.25);}
+  .plat-InterviewBit{color:#ff9f7a;background:rgba(255,159,122,0.1);border-color:rgba(255,159,122,0.25);}
+  .plat-CodeChef{color:#c9a97a;background:rgba(201,169,122,0.1);border-color:rgba(201,169,122,0.25);}
+  .plat-eOlymp{color:#a8c97a;background:rgba(168,201,122,0.1);border-color:rgba(168,201,122,0.25);}
+  .plat-Other{color:var(--text-dim);background:rgba(124,139,161,0.1);border-color:rgba(124,139,161,0.25);}
+
+  .content a.title{
+    color:var(--text);
+    text-decoration:none;
+    font-weight:700;
+    font-size:16.5px;
+    line-height:1.4;
+    display:inline;
+    border-bottom:1px solid transparent;
+  }
+  .content a.title:hover{color:#fff;border-bottom-color:var(--text-faint);}
+  .row.done .content a.title{color:var(--text-dim);text-decoration:line-through;text-decoration-color:var(--text-faint);}
+  .notes{
+    color:var(--text);
+    font-size:16px;
+    line-height:1.65;
+    margin-top:8px;
+    max-width:100%;
+    font-weight:500;
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+  .notes.empty{display:none;}
+
+  .priority-badge{
+    font-family:var(--mono);
+    font-size:10px;
+    font-weight:700;
+    text-align:right;
+    color:var(--pending);
+    white-space:nowrap;
+    margin-top:8px;
+    letter-spacing:.02em;
+  }
+  .priority-badge.empty{visibility:hidden;}
+  .priority-badge::before{content:"● ";}
+
+  .idx{
+    font-family:var(--mono);
+    color:var(--text-faint);
+    font-size:11px;
+    margin-top:9px;
+    text-align:right;
+  }
+
+  footer{
+    text-align:center;
+    color:var(--text-faint);
+    font-family:var(--mono);
+    font-size:11px;
+    margin-top:22px;
+    letter-spacing:.03em;
+  }
+  footer .save-indicator{
+    color:var(--ac);
+    opacity:0;
+    transition:opacity .3s ease;
+  }
+  footer .save-indicator.show{opacity:1;}
+
+  .empty-state{
+    text-align:center;
+    padding:50px 20px;
+    color:var(--text-faint);
+    font-family:var(--mono);
+    font-size:13px;
+    display:none;
+  }
+
+  @media (max-width:640px){
+    .row{grid-template-columns:48px 1fr; grid-template-areas:"v content" "p content" "i content";}
+    .platform-badge{justify-self:start;}
+    .priority-badge{text-align:left;}
+    .idx{display:none;}
+  }
+
+  /* ---- toasts ---- */
+  #toastContainer{
+    position:fixed;
+    bottom:22px;
+    right:22px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    z-index:9999;
+    max-width:340px;
+  }
+  .toast{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-left:4px solid var(--cf);
+    border-radius:9px;
+    padding:13px 16px;
+    font-family:var(--sans);
+    font-size:13.5px;
+    line-height:1.5;
+    color:var(--text);
+    box-shadow:0 10px 28px rgba(0,0,0,0.45);
+    animation:toastIn .28s ease;
+  }
+  .toast.warn{border-left-color:var(--pending);}
+  .toast.success{border-left-color:var(--ac);}
+  .toast.slow{border-left-color:var(--wa);}
+  .toast.fadeout{animation:toastOut .3s ease forwards;}
+  @keyframes toastIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes toastOut{from{opacity:1;}to{opacity:0;transform:translateY(-6px);}}
+
+  @media (max-width:640px){
+    #toastContainer{left:14px;right:14px;bottom:14px;max-width:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">// personal judge</div>
+    <h1><span class="dot" id="headerDot"></span>DSA Sheet Tracker</h1>
+    <div class="subtitle">Graphs, rerooting DP, monotonic stacks & OA-repeat questions. Click <b style="color:var(--text-dim)">TODO</b> to start the clock, click again once you're <b style="color:var(--ac)">AC</b> — under 30 min gets a cheer, over gets called out.</div>
+
+    <div class="statline">
+      <div class="stat">
+        <div class="num" id="statTotal">0</div>
+        <div class="lbl">Total</div>
+      </div>
+      <div class="stat ac">
+        <div class="num" id="statDone">0</div>
+        <div class="lbl">Accepted</div>
+      </div>
+      <div class="stat pending">
+        <div class="num" id="statLeft">0</div>
+        <div class="lbl">Pending</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="statPct">0%</div>
+        <div class="lbl">Complete</div>
+      </div>
+    </div>
+    <div class="progress-outer"><div class="progress-inner" id="progressBar"></div></div>
+
+    <div class="platform-bars" id="platformBars"></div>
+  </header>
+
+  <div class="toolbar">
+    <input class="search" id="searchBox" type="text" placeholder="Search problems or notes…" />
+    <select id="platformFilter">
+      <option value="">All platforms</option>
+    </select>
+    <select id="priorityFilter">
+      <option value="">All priority</option>
+    </select>
+    <button class="chip-btn" id="pendingOnlyBtn">Pending only</button>
+  </div>
+
+  <div class="list" id="list"></div>
+  <div class="empty-state" id="emptyState">No problems match these filters.</div>
+
+  <footer>
+    saved to your Claude storage <span class="save-indicator" id="saveIndicator">● synced</span>
+  </footer>
+</div>
+
+<div id="toastContainer"></div>
+
+<script>
+const DATA = [{"id": 1, "url": "https://leetcode.com/problems/collect-coins-in-a-tree/description/", "platform": "LeetCode", "priority": "", "notes": "Tree pruning se pehlle faltu(0) ke leaf hata do then leaf pe (1) bachega– remove extreme 2 leafs of 1 coin.. Now remaining me , count++ when deg[edges[0[1] >0 and deg [0[[0] >0 bahut se OA me aaya hai", "title": "Collect Coins In A Tree"}, {"id": 2, "url": "https://leetcode.com/problems/binary-tree-pruning/description/", "platform": "LeetCode", "priority": "", "notes": "Tree pruning- removing parts of tree we dont need, ex 0 and 1 tree unrooted and removing subtree not heaving any 1", "title": "Binary Tree Pruning"}, {"id": 3, "url": "https://leetcode.com/problems/largest-component-size-by-common-factor/description/", "platform": "LeetCode", "priority": "High", "notes": "VVI, krke jao, 5 times se jayda - Done with making dsu of factors by running loop from 2 to root n", "title": "Largest Component Size By Common Factor"}, {"id": 4, "url": "https://leetcode.com/problems/tree-of-coprimes/description/", "platform": "LeetCode", "priority": "", "notes": "oa pe is concept bahut aaye hai, Thoda alag type ka tha, Nums[i] ki max value 50 hi hai, to uske coprimes precompute krlenge and ek jagah nums[i] ke acc uska i and depth store krlenge, Ab dfs me coprimes dekhenge current node ke agr vo aa chuka and depth ki kam ho to use lelenge and prev value ko backtrack", "title": "Tree Of Coprimes"}, {"id": 5, "url": "https://leetcode.com/problems/largest-color-value-in-a-directed-graph/description/", "platform": "LeetCode", "priority": "", "notes": "Dp+toposort, Mtlb main to wahi hai ki dp[node][color] tells ki iss node tk colour ke kitne node hai", "title": "Largest Color Value In A Directed Graph"}, {"id": 6, "url": "https://leetcode.com/problems/maximum-sum-bst-in-binary-tree/description/", "platform": "LeetCode", "priority": "", "notes": "Take update of each sub tree like whether its bst or not, left min, r left max, left tree sum. Same for right sub tree. If both right and left are bst then check for node-> val", "title": "Maximum Sum Bst In Binary Tree"}, {"id": 7, "url": "https://leetcode.com/problems/parallel-courses-ii/description/", "platform": "LeetCode", "priority": "", "notes": "Using bitmask,, dp mask represent the no of sems req for the state, Take a prereq vector, then iterate over mask seeing that prereq are already done", "title": "Parallel Courses Ii"}, {"id": 8, "url": "https://leetcode.com/problems/longest-cycle-in-a-graph/description/", "platform": "LeetCode", "priority": "High", "notes": "VVI TOPO SORT SE SMJHNA BAHUT IMPORTANT CONCEPT. TOPO se elements remove krdiye jo not connected to cycle hai, baad me bache unko dfs se longest cycle chla dia", "title": "Longest Cycle In A Graph"}, {"id": 9, "url": "https://leetcode.com/problems/maximum-employees-to-be-invited-to-a-meeting/description/", "platform": "LeetCode", "priority": "High", "notes": "VVI Cycle detection, if cyclelen>2 return max cyclelen or if cycle len ==2 then return max chain connected to both components", "title": "Maximum Employees To Be Invited To A Meeting"}, {"id": 10, "url": "https://leetcode.com/problems/minimum-obstacle-removal-to-reach-corner/description/", "platform": "LeetCode", "priority": "", "notes": "0-1 BFS se kro- Wahi deque lgana hai bss obstacle to 1 treat krna and min cost to reach", "title": "Minimum Obstacle Removal To Reach Corner"}, {"id": 11, "url": "https://leetcode.com/problems/distribute-coins-in-binary-tree/description/", "platform": "LeetCode", "priority": "", "notes": "Go to leaf, check if it needs coin, needed coins are 1-(node val), return the value maybe positive of -ve, add abs(1-node val) to answer", "title": "Distribute Coins In Binary Tree"}, {"id": 12, "url": "https://leetcode.com/problems/binary-tree-cameras/description/", "platform": "LeetCode", "priority": "", "notes": "DESHAW INTERVIEW, CONFLUENT INTERVIEW, Multiple OA. Nothing just dfs, take three states - dont need camera, need camera, itself the camera", "title": "Binary Tree Cameras"}, {"id": 13, "url": "https://leetcode.com/problems/couples-holding-hands/description/", "platform": "LeetCode", "priority": "", "notes": "Mere se confluent interview me pucha tha. If bfs– put s1 in q, swap mismatches and if not visited put in q, backtrack by swapping to original. If dfs- start with s1 , s2 ,make map dp, swap mismatched, run recursion using dp, return dp[s1] = min of that state", "title": "Couples Holding Hands"}, {"id": 14, "url": "https://leetcode.com/problems/rank-transform-of-a-matrix/description/", "platform": "LeetCode", "priority": "High", "notes": "VVI", "title": "Rank Transform Of A Matrix"}, {"id": 15, "url": "https://leetcode.com/problems/longest-increasing-path-in-a-matrix/description/", "platform": "LeetCode", "priority": "", "notes": "Do with Topo sort - after indegrees in graph just have to return max length. Can do with dp + memoization also", "title": "Longest Increasing Path In A Matrix"}, {"id": 16, "url": "https://leetcode.com/problems/number-of-ways-to-arrive-at-destination/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Number Of Ways To Arrive At Destination"}, {"id": 17, "url": "https://leetcode.com/problems/is-graph-bipartite/description/", "platform": "LeetCode", "priority": "High", "notes": "VVI", "title": "Is Graph Bipartite"}, {"id": 18, "url": "https://leetcode.com/problems/possible-bipartition/description/", "platform": "LeetCode", "priority": "High", "notes": "Hacker earth OA me aaya, Phonepe OA me aaya, VVI, Pressure me tough to find that basically Bipartite nikalana hai", "title": "Possible Bipartition"}, {"id": 19, "url": "https://leetcode.com/problems/minimum-cost-of-a-path-with-special-roads/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Minimum Cost Of A Path With Special Roads"}, {"id": 20, "url": "https://leetcode.com/problems/jump-game-vi/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Jump Game Vi"}, {"id": 21, "url": "https://leetcode.com/problems/shortest-path-to-get-all-keys/description/", "platform": "LeetCode", "priority": "", "notes": "BFS+BITMASK, sprinklr interview", "title": "Shortest Path To Get All Keys"}, {"id": 22, "url": "https://leetcode.com/problems/number-of-good-paths/description/", "platform": "LeetCode", "priority": "High", "notes": "VVI GOOGLE OA, many interviews", "title": "Number Of Good Paths"}, {"id": 23, "url": "https://leetcode.com/problems/time-taken-to-mark-all-nodes/description/", "platform": "LeetCode", "priority": "", "notes": "Rerooting dp", "title": "Time Taken To Mark All Nodes"}, {"id": 24, "url": "https://leetcode.com/problems/difference-between-maximum-and-minimum-price-sum/description/", "platform": "LeetCode", "priority": "", "notes": "Rerooting dp", "title": "Difference Between Maximum And Minimum Price Sum"}, {"id": 25, "url": "https://codeforces.com/contest/1324/problem/F", "platform": "Codeforces", "priority": "", "notes": "Rerooting dp, 1000 oa", "title": "CF 1324F"}, {"id": 26, "url": "https://codeforces.com/contest/219/problem/D", "platform": "Codeforces", "priority": "", "notes": "rerooting dp, 1000 oa", "title": "CF 219D"}, {"id": 27, "url": "https://leetcode.com/problems/minimum-edge-reversals-so-every-node-is-reachable/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Minimum Edge Reversals So Every Node Is Reachable"}, {"id": 28, "url": "https://leetcode.com/problems/sum-of-distances-in-tree/description/", "platform": "LeetCode", "priority": "", "notes": "cses pe bhi hai", "title": "Sum Of Distances In Tree"}, {"id": 29, "url": "https://leetcode.com/problems/bricks-falling-when-hit/description/", "platform": "LeetCode", "priority": "", "notes": "DSU important question", "title": "Bricks Falling When Hit"}, {"id": 30, "url": "https://codeforces.com/contest/1213/problem/G", "platform": "Codeforces", "priority": "", "notes": "DSU, 1000 OA", "title": "CF 1213G"}, {"id": 31, "url": "https://codeforces.com/contest/1242/problem/B", "platform": "Codeforces", "priority": "High", "notes": "VVI, ISME Set se concept sikho, MEESHO, ZOMATO AND many companies", "title": "CF 1242B"}, {"id": 32, "url": "https://codeforces.com/contest/1915/problem/G", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1915G"}, {"id": 33, "url": "https://codeforces.com/contest/1941/problem/G", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1941G"}, {"id": 34, "url": "https://codeforces.com/contest/1307/problem/D", "platform": "Codeforces", "priority": "", "notes": "Media.net interview", "title": "CF 1307D"}, {"id": 35, "url": "https://codeforces.com/contest/25/problem/D", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 25D"}, {"id": 36, "url": "https://leetcode.com/problems/reconstruct-itinerary/description/", "platform": "LeetCode", "priority": "High", "notes": "VVI, Flipkart me aaya tha, faltu ki bkchodi krta reh gaya tha", "title": "Reconstruct Itinerary"}, {"id": 37, "url": "https://leetcode.com/problems/valid-arrangement-of-pairs/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Valid Arrangement Of Pairs"}, {"id": 38, "url": "https://leetcode.com/problems/minimum-score-after-removals-on-a-tree/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Minimum Score After Removals On A Tree"}, {"id": 39, "url": "https://leetcode.com/problems/divide-nodes-into-the-maximum-number-of-groups/description/", "platform": "LeetCode", "priority": "", "notes": "UBER OA ME HUMESA AATA, USSE PEHLE RAT KE JAO", "title": "Divide Nodes Into The Maximum Number Of Groups"}, {"id": 40, "url": "https://leetcode.com/problems/cheapest-flights-within-k-stops/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Cheapest Flights Within K Stops"}, {"id": 41, "url": "https://leetcode.com/problems/minimum-height-trees/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Minimum Height Trees"}, {"id": 42, "url": "https://leetcode.com/problems/clone-graph/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Clone Graph"}, {"id": 43, "url": "https://www.hackerearth.com/practice/algorithms/graphs/minimum-spanning-tree/practice-problems/algorithm/hacker-land-a4c9de07/", "platform": "HackerEarth", "priority": "High", "notes": "VVI SAARE OA AAEGA", "title": "Hacker Land A4C9De07"}, {"id": 44, "url": "https://atcoder.jp/contests/abc238/tasks/abc238_e", "platform": "AtCoder", "priority": "High", "notes": "VVI OA ME AAEGA TO KABHI NHI HOGA, SMJHO SEEKHO AUR JAO", "title": "ABC238 E"}, {"id": 45, "url": "https://www.interviewbit.com/problems/smallest-multiple-with-0-and-1/", "platform": "InterviewBit", "priority": "Extremely High", "notes": "MY favourite question, erichto ke video se sikha tha, VVVVVVVVI", "title": "Smallest Multiple With 0 And 1"}, {"id": 46, "url": "https://atcoder.jp/contests/abc312/tasks/abc312_g", "platform": "AtCoder", "priority": "Very High", "notes": "VVVVVI", "title": "ABC312 G"}, {"id": 47, "url": "https://atcoder.jp/contests/abc324/tasks/abc324_f", "platform": "AtCoder", "priority": "", "notes": "BS+DFS", "title": "ABC324 F"}, {"id": 48, "url": "https://codeforces.com/contest/1760/problem/G", "platform": "Codeforces", "priority": "", "notes": "Fkart, edge case is good. CONCEPT: Adding Imaginary node in graph", "title": "CF 1760G"}, {"id": 49, "url": "https://codeforces.com/problemset/problem/1245/D", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1245D"}, {"id": 50, "url": "https://leetcode.com/problems/gcd-sort-of-an-array/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Gcd Sort Of An Array"}, {"id": 51, "url": "https://codeforces.com/problemset/problem/1775/D", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1775D"}, {"id": 52, "url": "https://atcoder.jp/contests/abc224/tasks/abc224_e", "platform": "AtCoder", "priority": "", "notes": "DP on grid ka mst question hai (graph bhi maan sakte) special thing is how to run for loop taki chote wale calculated ho", "title": "ABC224 E"}, {"id": 53, "url": "https://codeforces.com/contest/1831/problem/C", "platform": "Codeforces", "priority": "High", "notes": "VVI 1500-1600 rated", "title": "CF 1831C"}, {"id": 54, "url": "https://leetcode.com/problems/apply-operations-to-maximize-frequency-score/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Apply Operations To Maximize Frequency Score"}, {"id": 55, "url": "https://codeforces.com/contest/1987/problem/D", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1987D"}, {"id": 56, "url": "https://leetcode.com/problems/find-the-maximum-sum-of-node-values/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Find The Maximum Sum Of Node Values"}, {"id": 57, "url": "https://leetcode.com/problems/sum-of-floored-pairs/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Sum Of Floored Pairs"}, {"id": 58, "url": "https://leetcode.com/problems/lfu-cache/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Lfu Cache"}, {"id": 59, "url": "https://www.hackerearth.com/practice/data-structures/advanced-data-structures/trie-keyword-tree/practice-problems/algorithm/prefix-queries-3-2c111491/", "platform": "HackerEarth", "priority": "", "notes": "", "title": "Prefix Queries 3 2C111491"}, {"id": 60, "url": "https://codeforces.com/problemset/problem/1082/E", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1082E"}, {"id": 61, "url": "https://codeforces.com/contest/1814/problem/B", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1814B"}, {"id": 62, "url": "https://codeforces.com/contest/1971/problem/G", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1971G"}, {"id": 63, "url": "https://codeforces.com/contest/360/problem/B", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 360B"}, {"id": 64, "url": "https://codeforces.com/contest/1526/problem/C2", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1526C2"}, {"id": 65, "url": "https://leetcode.com/problems/count-valid-paths-in-a-tree/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Count Valid Paths In A Tree"}, {"id": 66, "url": "https://leetcode.com/problems/student-attendance-record-ii/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Student Attendance Record Ii"}, {"id": 67, "url": "https://atcoder.jp/contests/arc150/tasks/arc150_b", "platform": "AtCoder", "priority": "", "notes": "", "title": "ARC150 B"}, {"id": 68, "url": "https://codeforces.com/problemset/problem/24/A", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 24A"}, {"id": 69, "url": "https://codeforces.com/problemset/problem/1488/C", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1488C"}, {"id": 70, "url": "https://codeforces.com/problemset/problem/1731/C", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1731C"}, {"id": 71, "url": "https://codeforces.com/problemset/problem/1971/G", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1971G"}, {"id": 72, "url": "https://codeforces.com/problemset/problem/462/C", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 462C"}, {"id": 73, "url": "https://codeforces.com/gym/100778/problem/D", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF Gym 100778D"}, {"id": 74, "url": "https://leetcode.com/problems/odd-even-jump/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Odd Even Jump"}, {"id": 75, "url": "https://basecamp.eolymp.com/ja/problems/608", "platform": "eOlymp", "priority": "", "notes": "", "title": "eOlymp 608"}, {"id": 76, "url": "https://www.codechef.com/problems/PARFUN", "platform": "CodeChef", "priority": "", "notes": "", "title": "CodeChef PARFUN"}, {"id": 77, "url": "https://leetcode.com/problems/find-the-closest-palindrome/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Find The Closest Palindrome"}, {"id": 78, "url": "https://leetcode.com/problems/maximum-performance-of-a-team/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Maximum Performance Of A Team"}, {"id": 79, "url": "https://leetcode.com/problems/collecting-chocolates/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Collecting Chocolates"}, {"id": 80, "url": "https://leetcode.com/problems/mice-and-cheese/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Mice And Cheese"}, {"id": 81, "url": "https://leetcode.com/problems/make-sum-divisible-by-p/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Make Sum Divisible By P"}, {"id": 82, "url": "https://leetcode.com/problems/remove-k-digits/description/", "platform": "LeetCode", "priority": "Extremely High", "notes": "VVVVVVI Most important concept. Nothing just add elements to stack, if next is smaller then remove existing from stack and push curr smaller, store in ans, remove zeroes from end of ans vector(zero in start of num)", "title": "Remove K Digits"}, {"id": 83, "url": "https://leetcode.com/problems/create-maximum-number/", "platform": "LeetCode", "priority": "High", "notes": "VVI CONCEPT PF STACK, FPKART ME NHI HUA THA", "title": "Create Maximum Number"}, {"id": 84, "url": "https://leetcode.com/problems/shortest-subarray-with-sum-at-least-k/description/", "platform": "LeetCode", "priority": "High", "notes": "VVI, INTERVIEW ME DEQUE SE O(n) vvi", "title": "Shortest Subarray With Sum At Least K"}, {"id": 85, "url": "https://leetcode.com/problems/maximum-earnings-from-taxi/description/", "platform": "LeetCode", "priority": "High", "notes": "Hackerank bhi, vvi", "title": "Maximum Earnings From Taxi"}, {"id": 86, "url": "https://leetcode.com/problems/allocate-mailboxes/description/", "platform": "LeetCode", "priority": "", "notes": "Very very important question, do atleast 3 times", "title": "Allocate Mailboxes"}, {"id": 87, "url": "https://leetcode.com/problems/distinct-subsequences-ii/description/", "platform": "LeetCode", "priority": "", "notes": "Important concept", "title": "Distinct Subsequences Ii"}, {"id": 88, "url": "https://leetcode.com/problems/find-the-count-of-monotonic-pairs-ii/description/", "platform": "LeetCode", "priority": "", "notes": "1000 oa", "title": "Find The Count Of Monotonic Pairs Ii"}, {"id": 89, "url": "https://leetcode.com/problems/cherry-pickup/description/", "platform": "LeetCode", "priority": "High", "notes": "VVI", "title": "Cherry Pickup"}, {"id": 90, "url": "https://leetcode.com/problems/repeated-dna-sequences/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Repeated Dna Sequences"}, {"id": 91, "url": "https://leetcode.com/problems/longest-happy-prefix/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Longest Happy Prefix"}, {"id": 92, "url": "https://leetcode.com/problems/shortest-palindrome/description/", "platform": "LeetCode", "priority": "High", "notes": "VVI", "title": "Shortest Palindrome"}, {"id": 93, "url": "https://leetcode.com/problems/decoded-string-at-index/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Decoded String At Index"}, {"id": 94, "url": "https://www.hackerearth.com/problem/algorithm/altered-primes/", "platform": "HackerEarth", "priority": "", "notes": "", "title": "Altered Primes"}, {"id": 95, "url": "https://codeforces.com/contest/628/problem/D", "platform": "Codeforces", "priority": "", "notes": "DIGIT DP", "title": "CF 628D"}, {"id": 96, "url": "https://codeforces.com/problemset/problem/1513/C", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1513C"}, {"id": 97, "url": "https://atcoder.jp/contests/tenka1-2017/tasks/tenka1_2017_d", "platform": "AtCoder", "priority": "High", "notes": "vvi", "title": "TENKA1 2017 D"}, {"id": 98, "url": "https://leetcode.com/problems/minimum-number-of-valid-strings-to-form-target-ii/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Minimum Number Of Valid Strings To Form Target Ii"}, {"id": 99, "url": "https://codeforces.com/problemset/problem/1360/F", "platform": "Codeforces", "priority": "", "notes": "MICROSFT", "title": "CF 1360F"}, {"id": 100, "url": "https://codeforces.com/blog/entry/122218", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF Blog 122218"}, {"id": 101, "url": "https://codeforces.com/problemset/problem/1221/D", "platform": "Codeforces", "priority": "", "notes": "MERE 4 OA ME AAYA, SABME KARKE AAYA", "title": "CF 1221D"}, {"id": 102, "url": "https://codeforces.com/problemset/problem/361/D", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 361D"}, {"id": 103, "url": "https://atcoder.jp/contests/abc195/tasks/abc195_b", "platform": "AtCoder", "priority": "", "notes": "", "title": "ABC195 B"}, {"id": 104, "url": "https://leetcode.com/problems/minimum-number-of-taps-to-open-to-water-a-garden/description/", "platform": "LeetCode", "priority": "", "notes": "MOST IMPORTANT QUESTION OF THIS SHEET", "title": "Minimum Number Of Taps To Open To Water A Garden"}, {"id": 105, "url": "https://codeforces.com/contest/1303/problem/D", "platform": "Codeforces", "priority": "", "notes": "media net", "title": "CF 1303D"}, {"id": 106, "url": "https://leetcode.com/problems/best-team-with-no-conflicts/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Best Team With No Conflicts"}, {"id": 107, "url": "https://leetcode.com/problems/profitable-schemes/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Profitable Schemes"}, {"id": 108, "url": "https://leetcode.com/problems/domino-and-tromino-tiling/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Domino And Tromino Tiling"}, {"id": 109, "url": "https://leetcode.com/problems/filling-bookcase-shelves/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Filling Bookcase Shelves"}, {"id": 110, "url": "https://leetcode.com/problems/palindrome-partitioning-iii/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Palindrome Partitioning Iii"}, {"id": 111, "url": "https://leetcode.com/problems/triples-with-bitwise-and-equal-to-zero/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Triples With Bitwise And Equal To Zero"}, {"id": 112, "url": "https://leetcode.com/problems/maximum-profit-in-job-scheduling/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Maximum Profit In Job Scheduling"}, {"id": 113, "url": "https://leetcode.com/problems/count-all-valid-pickup-and-delivery-options/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Count All Valid Pickup And Delivery Options"}, {"id": 114, "url": "https://leetcode.com/problems/stone-game-iii/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Stone Game Iii"}, {"id": 115, "url": "https://codeforces.com/problemset/problem/1741/E", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1741E"}, {"id": 116, "url": "https://codeforces.com/problemset/problem/1703/G", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1703G"}, {"id": 117, "url": "https://codeforces.com/problemset/problem/467/C", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 467C"}, {"id": 118, "url": "https://codeforces.com/problemset/problem/977/F", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 977F"}, {"id": 119, "url": "https://codeforces.com/problemset/problem/1476/D", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1476D"}, {"id": 120, "url": "https://codeforces.com/problemset/problem/1061/C", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1061C"}, {"id": 121, "url": "https://codeforces.com/problemset/problem/234/F", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 234F"}, {"id": 122, "url": "https://codeforces.com/problemset/problem/577/B", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 577B"}, {"id": 123, "url": "https://codeforces.com/problemset/problem/1509/C", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1509C"}, {"id": 124, "url": "https://codeforces.com/problemset/problem/1829/H", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1829H"}, {"id": 125, "url": "https://codeforces.com/problemset/problem/518", "platform": "Codeforces", "priority": "", "notes": "", "title": "https://codeforces.com/problemset/problem/518"}, {"id": 126, "url": "https://leetcode.com/problems/trapping-rain-water/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Trapping Rain Water"}, {"id": 127, "url": "https://leetcode.com/problems/trapping-rain-water-ii/description/", "platform": "LeetCode", "priority": "High", "notes": "vvi", "title": "Trapping Rain Water Ii"}, {"id": 128, "url": "https://leetcode.com/problems/fruit-into-baskets/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Fruit Into Baskets"}, {"id": 129, "url": "https://leetcode.com/problems/longest-valid-parentheses/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Longest Valid Parentheses"}, {"id": 130, "url": "https://leetcode.com/problems/x-of-a-kind-in-a-deck-of-cards/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "X Of A Kind In A Deck Of Cards"}, {"id": 131, "url": "https://leetcode.com/problems/search-in-rotated-sorted-array/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Search In Rotated Sorted Array"}, {"id": 132, "url": "https://leetcode.com/problems/odd-even-jump/", "platform": "LeetCode", "priority": "High", "notes": "VVI", "title": "Odd Even Jump"}, {"id": 133, "url": "https://leetcode.com/problems/ipo/description/", "platform": "LeetCode", "priority": "High", "notes": "VVI", "title": "Ipo"}, {"id": 134, "url": "https://leetcode.com/problems/candy/description/", "platform": "LeetCode", "priority": "High", "notes": "vvi", "title": "Candy"}, {"id": 135, "url": "https://leetcode.com/problems/frog-position-after-t-seconds/description/", "platform": "LeetCode", "priority": "", "notes": "inmobi me aaya tha, Study set_precision and fixed because bahut baar flexibility nhi rehti decimal ke baad", "title": "Frog Position After T Seconds"}, {"id": 136, "url": "https://leetcode.com/problems/gas-station/description/", "platform": "LeetCode", "priority": "High", "notes": "VVI", "title": "Gas Station"}, {"id": 137, "url": "https://leetcode.com/problems/minimum-sideway-jumps/description/", "platform": "LeetCode", "priority": "High", "notes": "vvi", "title": "Minimum Sideway Jumps"}, {"id": 138, "url": "https://leetcode.com/problems/count-subarrays-with-median-k/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Count Subarrays With Median K"}, {"id": 139, "url": "https://codeforces.com/problemset/problem/1980/E", "platform": "Codeforces", "priority": "", "notes": "thoughtspot interview 4 times", "title": "CF 1980E"}, {"id": 140, "url": "https://leetcode.com/problems/critical-connections-in-a-network/description/", "platform": "LeetCode", "priority": "", "notes": "Google and aur bhi jagah", "title": "Critical Connections In A Network"}, {"id": 141, "url": "https://leetcode.com/problems/maximum-score-words-formed-by-letters/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Maximum Score Words Formed By Letters"}, {"id": 142, "url": "https://leetcode.com/problems/wiggle-sort-ii/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Wiggle Sort Ii"}, {"id": 143, "url": "https://codeforces.com/contest/1734/problem/D", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1734D"}, {"id": 144, "url": "https://codeforces.com/contest/25/problem/C", "platform": "Codeforces", "priority": "", "notes": "graph", "title": "CF 25C"}, {"id": 145, "url": "https://codeforces.com/problemset/problem/1918/D", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1918D"}, {"id": 146, "url": "https://codeforces.com/problemset/problem/665/E", "platform": "Codeforces", "priority": "", "notes": "OA me aata hai TRIE BASED", "title": "CF 665E"}, {"id": 147, "url": "https://codeforces.com/contest/627/problem/A", "platform": "Codeforces", "priority": "", "notes": "Ye concept pe hackerearth OA me aaya tha bitmask ka. Learn: a+b = (a XOR b) + (a AND b)*2. Isme a&b ka value nikaal lenge.", "title": "CF 627A"}, {"id": 148, "url": "https://codeforces.com/contest/1811/problem/E", "platform": "Codeforces", "priority": "High", "notes": "vvi", "title": "CF 1811E"}, {"id": 149, "url": "https://codeforces.com/contest/1799/problem/D1", "platform": "Codeforces", "priority": "", "notes": "Most important question ON DP", "title": "CF 1799D1"}, {"id": 150, "url": "https://codeforces.com/contest/2001/problem/C", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 2001C"}, {"id": 151, "url": "https://codeforces.com/contest/682/problem/C", "platform": "Codeforces", "priority": "", "notes": "Hackerank OA me aaega", "title": "CF 682C"}, {"id": 152, "url": "https://codeforces.com/contest/691/problem/D", "platform": "Codeforces", "priority": "High", "notes": "VVI", "title": "CF 691D"}, {"id": 153, "url": "https://codeforces.com/contest/1244/problem/E", "platform": "Codeforces", "priority": "", "notes": "DESHAW", "title": "CF 1244E"}, {"id": 154, "url": "https://codeforces.com/contest/1842/problem/C", "platform": "Codeforces", "priority": "", "notes": "Conceptual", "title": "CF 1842C"}, {"id": 155, "url": "https://codeforces.com/contest/1611/problem/F", "platform": "Codeforces", "priority": "High", "notes": "VVI", "title": "CF 1611F"}, {"id": 156, "url": "https://codeforces.com/contest/1037/problem/D", "platform": "Codeforces", "priority": "High", "notes": "VVI HACKERANK, TS, ZOMATO, MEESHO SABME", "title": "CF 1037D"}, {"id": 157, "url": "https://codeforces.com/blog/entry/127501", "platform": "Codeforces", "priority": "", "notes": "GOOGLE 100 TIMES.", "title": "CF Blog 127501"}, {"id": 158, "url": "https://codeforces.com/contest/713/problem/C", "platform": "Codeforces", "priority": "High", "notes": "vvi", "title": "CF 713C"}, {"id": 159, "url": "https://codeforces.com/contest/76/problem/D", "platform": "Codeforces", "priority": "", "notes": "Is concept pe upar daala hu. a+b = (a XOR b) + (a AND b)*2.", "title": "CF 76D"}, {"id": 160, "url": "https://codeforces.com/contest/510/problem/D", "platform": "Codeforces", "priority": "", "notes": "HACKERRANK OA ME aaega", "title": "CF 510D"}, {"id": 161, "url": "https://codeforces.com/contest/2009/problem/D", "platform": "Codeforces", "priority": "", "notes": "Google", "title": "CF 2009D"}, {"id": 162, "url": "https://codeforces.com/problemset/problem/1242/B", "platform": "Codeforces", "priority": "High", "notes": "VVI, ISME Set se concept sikho, MEESHO, ZOMATO AND many companies", "title": "CF 1242B"}, {"id": 163, "url": "https://codeforces.com/contest/1946/problem/C", "platform": "Codeforces", "priority": "", "notes": "", "title": "CF 1946C"}, {"id": 164, "url": "https://leetcode.com/problems/the-skyline-problem/description/", "platform": "LeetCode", "priority": "Extremely High", "notes": "VVVVVVVVVVVVVVI", "title": "The Skyline Problem"}, {"id": 165, "url": "https://leetcode.com/problems/sum-of-subarray-minimums/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Sum Of Subarray Minimums"}, {"id": 166, "url": "https://leetcode.com/problems/sum-of-subarray-ranges/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Sum Of Subarray Ranges"}, {"id": 167, "url": "https://codeforces.com/contest/817/problem/D", "platform": "Codeforces", "priority": "Extremely High", "notes": "VVVVVVI STACK PE CONTRIBUTION TECHNIQUE KA MOST IMPORTANT QUESTION, IS CONCEPT PE LEETCODE PE BAHUT SAWAL HAI", "title": "CF 817D"}, {"id": 168, "url": "https://leetcode.com/problems/sum-of-total-strength-of-wizards/description/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Sum Of Total Strength Of Wizards"}, {"id": 169, "url": "https://leetcode.com/problems/number-of-visible-people-in-a-queue/", "platform": "LeetCode", "priority": "", "notes": "", "title": "Number Of Visible People In A Queue"}, {"id": 170, "url": "https://codeforces.com/contest/547/problem/B", "platform": "Codeforces", "priority": "High", "notes": "VVI", "title": "CF 547B"}, {"id": 171, "url": "https://codeforces.com/blog/entry/131567", "platform": "Codeforces", "priority": "", "notes": "Concept 2: You can find NGE, next greater element with help of stack. How will you find kth NGE? Is comments se sikha. Isme smaller hai waise hi greater kardo. Generalise karne ke lie 2 and 1 ko k and k-1,1 se replace Krdo. When a item is popped from the stack for the first time, place it back again and you can find that the monotonicity of the stack still maintains.", "title": "CF Blog 131567"}];
+// Stored in the browser that opens this file. `localStorage` works for a
+// normal browser tab as well as an embedded preview.
+const STORAGE_KEY = "dsa_tracker_state_v1";
+const LEGACY_PROGRESS_KEY = "dsa_tracker_progress_v2";
+const THIRTY_MIN_MS = 30 * 60 * 1000;
+let progress = {};
+let filters = { q: "", platform: "", priority: "", pendingOnly: false };
+let savedScrollY = 0;
+
+const listEl = document.getElementById('list');
+const emptyEl = document.getElementById('emptyState');
+const toastContainer = document.getElementById('toastContainer');
+
+function loadProgress(){
+  try{
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+    if(saved){
+      if(saved.progress){
+        progress = saved.progress;
+        filters = { ...filters, ...(saved.filters || {}) };
+        savedScrollY = Number(saved.scrollY) || 0;
+      } else {
+        // Also accept a progress-only object created by an older build.
+        progress = saved;
+      }
+    }
+  }catch(e){
+    progress = {};
+  }
+  // Migrate progress written by an earlier version of this tracker.
+  try{
+    const oldProgress = JSON.parse(localStorage.getItem(LEGACY_PROGRESS_KEY) || 'null');
+    if(oldProgress){
+      Object.keys(oldProgress).forEach(id=>{
+        if(oldProgress[id] && !progress[id]){
+          progress[id] = { state:'ac', solveMs:null };
+        }
+      });
+    }
+  }catch(e){ /* nothing to migrate */ }
+  // migrate any legacy boolean entries within the current key
+  Object.keys(progress).forEach(id=>{
+    if(progress[id] === true){
+      progress[id] = { state:'ac', solveMs:null };
+    }
+  });
+}
+
+function persist(silent = false){
+  try{
+    // Saving is synchronous: a reload immediately after a click cannot lose it.
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      version: 1,
+      progress,
+      filters,
+      scrollY: window.scrollY
+    }));
+    if(!silent) flashSaved();
+  }catch(e){
+    console.error('Could not save tracker state', e);
+  }
+}
+function flashSaved(){
+  const ind = document.getElementById('saveIndicator');
+  ind.classList.add('show');
+  setTimeout(()=>ind.classList.remove('show'), 900);
+}
+
+function priorityRank(p){
+  if(p === 'Extremely High') return 3;
+  if(p === 'Very High') return 2;
+  if(p === 'High') return 1;
+  return 0;
+}
+
+function buildFilterOptions(){
+  const plats = [...new Set(DATA.map(d=>d.platform))].sort();
+  const platSel = document.getElementById('platformFilter');
+  plats.forEach(p=>{
+    const o = document.createElement('option');
+    o.value = p; o.textContent = p;
+    platSel.appendChild(o);
+  });
+  const prios = ['Extremely High','Very High','High'];
+  const prioSel = document.getElementById('priorityFilter');
+  prios.forEach(p=>{
+    const o = document.createElement('option');
+    o.value = p; o.textContent = p;
+    prioSel.appendChild(o);
+  });
+}
+
+function rowMatchesFilters(d){
+  if(filters.platform && d.platform !== filters.platform) return false;
+  if(filters.priority && d.priority !== filters.priority) return false;
+  if(filters.pendingOnly && progress[d.id] && progress[d.id].state === 'ac') return false;
+  if(filters.q){
+    const hay = (d.title + ' ' + d.notes + ' ' + d.platform).toLowerCase();
+    if(!hay.includes(filters.q)) return false;
+  }
+  return true;
+}
+
+function formatElapsed(ms){
+  if(ms < 0) ms = 0;
+  const totalSec = Math.floor(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+
+function showToast(message, type){
+  const t = document.createElement('div');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.textContent = message;
+  toastContainer.appendChild(t);
+  setTimeout(()=>{
+    t.classList.add('fadeout');
+    setTimeout(()=> t.remove(), 320);
+  }, 6000);
+}
+
+function render(){
+  listEl.innerHTML = '';
+  let visibleCount = 0;
+  const frag = document.createDocumentFragment();
+
+  DATA.forEach(d=>{
+    const entry = progress[d.id];
+    const state = entry ? entry.state : 'todo';
+    const isDone = state === 'ac';
+    const match = rowMatchesFilters(d);
+    if(match) visibleCount++;
+
+    const row = document.createElement('div');
+    row.className = 'row' + (isDone ? ' done' : '') + (match ? '' : ' hidden');
+    row.dataset.id = d.id;
+    row.dataset.state = state;
+
+    const btnWrap = document.createElement('div');
+
+    const btn = document.createElement('button');
+    if(state === 'attempting'){
+      btn.className = 'verdict-btn attempting';
+      btn.textContent = formatElapsed(Date.now() - entry.startTime);
+      btn.setAttribute('aria-label', 'Mark as accepted');
+    } else if(state === 'ac'){
+      btn.className = 'verdict-btn checked';
+      btn.textContent = 'AC';
+      btn.setAttribute('aria-label', 'Reset to todo');
+    } else {
+      btn.className = 'verdict-btn';
+      btn.textContent = 'TODO';
+      btn.setAttribute('aria-label', 'Start attempt');
+    }
+    btn.addEventListener('click', ()=> onVerdictClick(d, btn, row));
+    btnWrap.appendChild(btn);
+
+    if(state === 'attempting'){
+      const hint = document.createElement('div');
+      hint.className = 'verdict-hint';
+      hint.textContent = 'solving…';
+      btnWrap.appendChild(hint);
+    }
+
+    const badge = document.createElement('div');
+    badge.className = 'platform-badge plat-' + d.platform.replace(/\s/g,'');
+    badge.textContent = d.platform;
+
+    const content = document.createElement('div');
+    content.className = 'content';
+
+    const a = document.createElement('a');
+    a.className = 'title';
+    a.href = d.url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.textContent = d.title;
+    content.appendChild(a);
+
+    if(d.notes && d.notes.trim().length){
+      const notes = document.createElement('div');
+      notes.className = 'notes';
+      notes.textContent = d.notes;
+      content.appendChild(notes);
+    }
+
+    const right = document.createElement('div');
+    const prio = document.createElement('div');
+    prio.className = 'priority-badge' + (d.priority ? '' : ' empty');
+    prio.textContent = d.priority || '—';
+    const idx = document.createElement('div');
+    idx.className = 'idx';
+    idx.textContent = '#' + d.id;
+    right.appendChild(prio);
+    right.appendChild(idx);
+
+    row.appendChild(btnWrap);
+    row.appendChild(badge);
+    row.appendChild(content);
+    row.appendChild(right);
+    frag.appendChild(row);
+  });
+
+  listEl.appendChild(frag);
+  emptyEl.style.display = visibleCount === 0 ? 'block' : 'none';
+  updateStats();
+
+  if(Object.values(progress).some(p => p && p.state === 'attempting')){
+    ensureTicking();
+  }
+}
+
+let tickInterval = null;
+function ensureTicking(){
+  if(tickInterval) return;
+  tickInterval = setInterval(tick, 1000);
+}
+function tick(){
+  let anyAttempting = false;
+  Object.keys(progress).forEach(id=>{
+    const p = progress[id];
+    if(p && p.state === 'attempting'){
+      anyAttempting = true;
+      const elapsed = Date.now() - p.startTime;
+      const row = listEl.querySelector('.row[data-id="' + id + '"]');
+      if(row){
+        const btn = row.querySelector('.verdict-btn');
+        if(btn) btn.textContent = formatElapsed(elapsed);
+      }
+      if(elapsed >= THIRTY_MIN_MS && !p.notified30){
+        p.notified30 = true;
+        persist();
+        const d = DATA.find(x => String(x.id) === String(id));
+        showToast('⏰ 30 minutes on "' + (d ? d.title : 'this problem') + '" — push through, or take a short break and come back.', 'warn');
+      }
+    }
+  });
+  if(!anyAttempting){
+    clearInterval(tickInterval);
+    tickInterval = null;
+  }
+}
+
+function onVerdictClick(d, btn, row){
+  const id = d.id;
+  const entry = progress[id];
+  const state = entry ? entry.state : 'todo';
+
+  if(state === 'todo'){
+    // start attempt
+    progress[id] = { state: 'attempting', startTime: Date.now(), notified30: false };
+    row.dataset.state = 'attempting';
+    btn.className = 'verdict-btn attempting';
+    btn.textContent = '00:00';
+    btn.setAttribute('aria-label', 'Mark as accepted');
+    if(!btn.parentElement.querySelector('.verdict-hint')){
+      const hint = document.createElement('div');
+      hint.className = 'verdict-hint';
+      hint.textContent = 'solving…';
+      btn.parentElement.appendChild(hint);
+    }
+    row.classList.remove('done');
+    ensureTicking();
+    showToast('▶ Started "' + d.title + '". Clock is running — aim for under 30 min.', 'info');
+
+  } else if(state === 'attempting'){
+    // mark accepted, stop the clock
+    const elapsed = Date.now() - entry.startTime;
+    progress[id] = { state: 'ac', solveMs: elapsed };
+    row.dataset.state = 'ac';
+    btn.className = 'verdict-btn checked';
+    btn.textContent = 'AC';
+    btn.setAttribute('aria-label', 'Reset to todo');
+    const hint = btn.parentElement.querySelector('.verdict-hint');
+    if(hint) hint.remove();
+    btn.classList.remove('pulse'); void btn.offsetWidth; btn.classList.add('pulse');
+    row.classList.add('done');
+    if(filters.pendingOnly){
+      row.classList.add('hidden');
+    }
+    if(elapsed < THIRTY_MIN_MS){
+      showToast('🎉 Accepted! "' + d.title + '" solved in ' + formatElapsed(elapsed) + ' — nice, that\'s under 30 min. Congrats!', 'success');
+    } else {
+      showToast('✅ Accepted — "' + d.title + '" took ' + formatElapsed(elapsed) + '. You\'re being slow, try to crack it under 30 min next time.', 'slow');
+    }
+
+  } else {
+    // ac -> reset back to todo
+    delete progress[id];
+    row.dataset.state = 'todo';
+    btn.className = 'verdict-btn';
+    btn.textContent = 'TODO';
+    btn.setAttribute('aria-label', 'Start attempt');
+    row.classList.remove('done');
+  }
+
+  persist();
+  updateStats();
+}
+
+function updateStats(){
+  const total = DATA.length;
+  const done = Object.keys(progress).filter(k=>progress[k] && progress[k].state === 'ac').length;
+  const left = total - done;
+  const pct = total ? Math.round((done/total)*100) : 0;
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statDone').textContent = done;
+  document.getElementById('statLeft').textContent = left;
+  document.getElementById('statPct').textContent = pct + '%';
+  document.getElementById('progressBar').style.width = pct + '%';
+  renderPlatformBars();
+}
+
+const PLATFORM_COLOR = {
+  'LeetCode':'#f0c14b',
+  'Codeforces':'#5aa9e6',
+  'AtCoder':'#8b7cf6',
+  'HackerEarth':'#5ad1c9',
+  'InterviewBit':'#ff9f7a',
+  'CodeChef':'#c9a97a',
+  'eOlymp':'#a8c97a',
+  'Other':'#7c8ba1'
+};
+
+function renderPlatformBars(){
+  const container = document.getElementById('platformBars');
+  container.innerHTML = '';
+
+  // preserve a sensible fixed order, but only show platforms actually present
+  const order = ['LeetCode','Codeforces','AtCoder','HackerEarth','InterviewBit','CodeChef','eOlymp','Other'];
+  const counts = {};
+  DATA.forEach(d=>{
+    if(!counts[d.platform]) counts[d.platform] = { total:0, done:0 };
+    counts[d.platform].total++;
+    if(progress[d.id] && progress[d.id].state === 'ac') counts[d.platform].done++;
+  });
+
+  order.filter(p=>counts[p]).forEach(p=>{
+    const { total, done } = counts[p];
+    const pct = total ? Math.round((done/total)*100) : 0;
+    const color = PLATFORM_COLOR[p] || '#7c8ba1';
+
+    const row = document.createElement('div');
+    row.className = 'plat-row';
+
+    const top = document.createElement('div');
+    top.className = 'plat-row-top';
+    const name = document.createElement('span');
+    name.className = 'plat-row-name';
+    name.textContent = p;
+    name.style.color = color;
+    const count = document.createElement('span');
+    count.className = 'plat-row-count';
+    count.textContent = `${done} / ${total} · ${pct}%`;
+    top.appendChild(name);
+    top.appendChild(count);
+
+    const barOuter = document.createElement('div');
+    barOuter.className = 'plat-bar-outer';
+    const barInner = document.createElement('div');
+    barInner.className = 'plat-bar-inner';
+    barInner.style.width = pct + '%';
+    barInner.style.background = color;
+    barInner.style.boxShadow = `0 0 8px ${color}55`;
+    barOuter.appendChild(barInner);
+
+    row.appendChild(top);
+    row.appendChild(barOuter);
+    container.appendChild(row);
+  });
+}
+
+document.getElementById('searchBox').addEventListener('input', (e)=>{
+  filters.q = e.target.value.trim().toLowerCase();
+  render();
+  persist();
+});
+document.getElementById('platformFilter').addEventListener('change', (e)=>{
+  filters.platform = e.target.value;
+  render();
+  persist();
+});
+document.getElementById('priorityFilter').addEventListener('change', (e)=>{
+  filters.priority = e.target.value;
+  render();
+  persist();
+});
+document.getElementById('pendingOnlyBtn').addEventListener('click', (e)=>{
+  filters.pendingOnly = !filters.pendingOnly;
+  e.target.classList.toggle('active', filters.pendingOnly);
+  render();
+  persist();
+});
+
+(function init(){
+  buildFilterOptions();
+  loadProgress();
+  document.getElementById('searchBox').value = filters.q;
+  document.getElementById('platformFilter').value = filters.platform;
+  document.getElementById('priorityFilter').value = filters.priority;
+  document.getElementById('pendingOnlyBtn').classList.toggle('active', filters.pendingOnly);
+  render();
+  requestAnimationFrame(()=> window.scrollTo(0, savedScrollY));
+})();
+
+let scrollSaveTimer = null;
+window.addEventListener('scroll', ()=>{
+  clearTimeout(scrollSaveTimer);
+  scrollSaveTimer = setTimeout(()=>persist(true), 200);
+}, { passive:true });
+window.addEventListener('beforeunload', ()=>persist(true));
+</script>
+</body>
+</html>
